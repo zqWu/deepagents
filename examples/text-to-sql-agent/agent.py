@@ -5,7 +5,7 @@ import sys
 from deepagents import create_deep_agent
 from deepagents.backends import FilesystemBackend
 from dotenv import load_dotenv
-from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_community.utilities import SQLDatabase
 from rich.console import Console
@@ -28,7 +28,7 @@ def create_sql_deep_agent():
     db = SQLDatabase.from_uri(f"sqlite:///{db_path}", sample_rows_in_table_info=3)
 
     # Initialize Claude Sonnet 4.5 for toolkit initialization
-    model = ChatAnthropic(model="claude-sonnet-4-5-20250929", temperature=0)
+    model = ChatOpenAI(model="gpt-35-turbo", temperature=0)
 
     # Create SQL toolkit and get tools
     toolkit = SQLDatabaseToolkit(db=db, llm=model)
