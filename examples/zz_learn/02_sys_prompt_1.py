@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 
 from deepagents import create_deep_agent
@@ -6,26 +8,15 @@ from langchain_openai import ChatOpenAI
 from rich.console import Console
 from rich.panel import Panel
 
-from middleware import AppendSystemPromptMiddleWare
-
-# Load environment variables
 load_dotenv()
-
-console = Console()
-
-
-def create_agent():
-    model = ChatOpenAI(model="gpt-35-turbo", temperature=0)
-
-    agent = create_deep_agent(
-        model=model,  # Claude Sonnet 4.5 with temperature=0
-        middleware=[AppendSystemPromptMiddleWare()],
-    )
-    return agent
 
 
 def main():
-    agent = create_agent()
+    console = Console()
+    agent = create_deep_agent(
+        model=ChatOpenAI(model="gpt-35-turbo", temperature=0),
+        system_prompt="你是一个有用的助手"  # 有个 BASE_SYSTEM_PROMPT
+    )
     try:
         result = agent.invoke(
             {"messages": [{"role": "user", "content": "brief introduction of yourself"}]}
