@@ -12,20 +12,19 @@ def main():
     checkpointer = MemorySaver()
     agent = create_deep_agent(
         model=ChatOpenAI(model="gpt-35-turbo", temperature=0),
-        system_prompt="You are a helpful research assistant.",
+        checkpointer=checkpointer,
     )
 
     # 使用 thread_id 标识对话线程
     config = {"configurable": {"thread_id": "conversation-123"}}
-    result = agent.invoke({"messages": [HumanMessage(content="你好")]}, config)
-
     # 第一轮对话
     result1 = agent.invoke({"messages": [HumanMessage(content="创建一个a.txt, 并写入当前日期. 返回文件绝对路径")]},
                            config)
 
     # 第二轮对话 - 传递之前的历史
     result2 = agent.invoke({"messages": result1["messages"] + [HumanMessage(content="读取a.txt内容")], }, config)
-    print(result2)
+    print(result2["messages"][-1].content)
+
 
 if __name__ == "__main__":
     main()
