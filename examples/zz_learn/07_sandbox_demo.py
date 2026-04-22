@@ -9,7 +9,7 @@ load_dotenv()
 restapi方式, 使用 opensandbox-server
 """
 
-OPEN_SANDBOX_API_KEY = os.getenv("OPEN-SANDBOX-API-KEY")
+OPEN_SANDBOX_API_KEY = os.getenv("OPEN_SANDBOX_API_KEY")
 
 
 def create_sandbox() -> dict:
