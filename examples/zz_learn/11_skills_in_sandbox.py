@@ -1,8 +1,7 @@
 import base64
 import os
-import stat
 import traceback
-from datetime import timedelta, datetime
+from datetime import timedelta
 from pathlib import PurePosixPath
 
 from deepagents import create_deep_agent
@@ -125,7 +124,8 @@ class OpenSandboxBackend(SandboxBackendProtocol):
                 continue
             if not relative.parts:
                 continue
-            top_level_paths.add(str(base_path / relative.parts[0]))
+            top_level_path = str(base_path / relative.parts[0])
+            top_level_paths.add(top_level_path)
 
         if not top_level_paths:
             return LsResult(entries=[])
@@ -140,8 +140,7 @@ class OpenSandboxBackend(SandboxBackendProtocol):
             item = info_map.get(top_level_path)
             if item is None:
                 continue
-            # is_dir = stat.S_ISDIR(item.mode)  # <===== 文件夹大小为0
-            is_dir = item.size == 0  # 存在误判可能: 如果文件大小也为0
+            is_dir = item.size == 0
             result_path = item.path.rstrip("/") + "/" if is_dir else item.path
             entry: FileInfo = {
                 "path": result_path,
@@ -248,7 +247,7 @@ class OpenSandboxBackend(SandboxBackendProtocol):
 
         matches: list[FileInfo] = []
         for item in found:
-            if stat.S_ISDIR(item.mode):
+            if item.size == 0:
                 continue
             try:
                 virtual_path = self._to_virtual_path(item.path)
@@ -280,7 +279,7 @@ class OpenSandboxBackend(SandboxBackendProtocol):
             return GrepResult(error=f"Error grepping '{pattern}': {exc}")
 
         for item in candidates:
-            if stat.S_ISDIR(item.mode):
+            if item.size == 0:
                 continue
             try:
                 content = self._sandbox.files.read_file(item.path, encoding="utf-8")
@@ -325,7 +324,7 @@ class OpenSandboxBackend(SandboxBackendProtocol):
                 if info is None:
                     responses.append(FileDownloadResponse(path=path, error="file_not_found"))
                     continue
-                if stat.S_ISDIR(info.mode):
+                if info.size == 0:
                     responses.append(FileDownloadResponse(path=path, error="is_directory"))
                     continue
                 content = self._sandbox.files.read_bytes(sandbox_path)
@@ -389,7 +388,6 @@ class OpenSandboxBackend(SandboxBackendProtocol):
 
 
 def create_sandbox() -> SandboxSync:
-    """Create an OpenSandbox instance for the demo."""
     if not OPEN_SANDBOX_API_KEY:
         msg = "OPEN-SANDBOX-API-KEY is not set"
         raise ValueError(msg)
@@ -402,14 +400,14 @@ def create_sandbox() -> SandboxSync:
     volumes = [
         Volume(
             name="agent-root",
-            host=Host(path="/agent-workspace"),
+            host=Host(path="/agent-workspace/agent-1"),
             mount_path=SANDBOX_WORKDIR,
             read_only=False,
         )
     ]
 
     sandbox = SandboxSync.create(
-        image="ubuntu:22.04",
+        image="python:3.12",
         entrypoint=["tail", "-f", "/dev/null"],
         timeout=timedelta(minutes=10),
         resource={"cpu": "500m", "memory": "512Mi"},
@@ -425,15 +423,16 @@ def create_sandbox() -> SandboxSync:
     return sandbox
 
 
-def test_sandbox_backend(user_prompt: str) -> None:
+def t_skill_in_sandbox(user_prompt: str) -> None:
     sandbox = create_sandbox()
     print(f"done: 创建 sandbox, id={sandbox.id}")
     backend = OpenSandboxBackend(sandbox)
 
     try:
         agent = create_deep_agent(
-            model=ChatOpenAI(model="gpt-35-turbo", temperature=0),
+            model=ChatOpenAI(model="gpt-5.4", temperature=0),  # gpt-5.4 gpt-35-turbo
             backend=backend,
+            skills=["/agent-root-dir/skills/"],  # 使用 backend 中的 skills
         )
         result = agent.invoke(
             {
@@ -450,63 +449,5 @@ def test_sandbox_backend(user_prompt: str) -> None:
         pass
 
 
-def test_upload() -> None:
-    sandbox = create_sandbox()
-    print(f"done: 创建 sandbox, id={sandbox.id}")
-    backend = OpenSandboxBackend(sandbox)
-
-    try:
-        target_path = "/agent-root-dir/agent-1/upload-demo.txt"
-        upload_result = backend.upload_files([(target_path, b"hello upload")])
-        print(upload_result)
-
-        read_result = backend.read(target_path)
-        if read_result.error:
-            print(read_result.error)
-            return
-        if read_result.file_data is None:
-            print("read returned no data")
-            return
-        print(read_result.file_data["encoding"])
-        print(read_result.file_data["content"])
-    finally:
-        backend.kill()
-        backend.close()
-
-
-def test_download() -> None:
-    sandbox = create_sandbox()
-    print(f"done: 创建 sandbox, id={sandbox.id}")
-    backend = OpenSandboxBackend(sandbox)
-
-    try:
-        target_path = "/agent-root-dir/agent-1/download-demo.txt"
-        write_result = backend.write(target_path, "hello download")
-        print(write_result)
-
-        download_result = backend.download_files([target_path])
-        print(download_result)
-        if not download_result:
-            print("download returned no results")
-            return
-        item = download_result[0]
-        if item.error:
-            print(item.error)
-            return
-        if item.content is None:
-            print("download returned no content")
-            return
-        print(item.content.decode("utf-8"))
-    finally:
-        backend.kill()
-        backend.close()
-
-
 if __name__ == "__main__":
-    data_str = datetime.now().strftime("%Y%m%d-%H%M")
-    # test_sandbox_backend("查看根目录 /agent-root-dir 下有哪些文件")  # ls
-    # test_sandbox_backend("读取 /agent-root-dir/agent-1/foo.txt")  # read
-    # test_sandbox_backend(f"创建(if not exists) /agent-root-dir/agent-1/foo-123.txt, 写入 123")  # write
-    # test_sandbox_backend(f"修改文件 /agent-root-dir/agent-1/foo-123.txt, 写入 456")  # edit
-    # test_upload()
-    test_download()
+    t_skill_in_sandbox("research quantum computing。直接返回, 不要解读。")
