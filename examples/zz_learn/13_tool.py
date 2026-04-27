@@ -547,5 +547,6 @@ def t_skill_in_sandbox(user_prompt: str) -> None:
 
 
 if __name__ == "__main__":
-    t_skill_in_sandbox("下载 https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png 到 /tmp。优先使用本地工具")
-    t_skill_in_sandbox("下载 https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png 到 /tmp。优先使用沙箱工具")
+    img_url = "https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png"
+    # t_skill_in_sandbox(f"下载 ${img_url} 到 /tmp。优先使用本地工具")
+    t_skill_in_sandbox(f"下载 ${img_url} 到 /tmp。优先使用沙箱工具")
