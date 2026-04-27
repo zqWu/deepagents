@@ -44,7 +44,7 @@ SANDBOX_WORKDIR = "/agent-root-dir"
 MAX_OUTPUT_BYTES = 50_000
 
 
-@tool(description="下载文件")
+@tool(description="本地工具:下载文件")
 def download_file_in_local(url: str, save_path: str) -> str:
     try:
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
@@ -63,7 +63,7 @@ def download_file_in_local(url: str, save_path: str) -> str:
 backend: Optional[SandboxBackendProtocol] = None
 
 
-@tool(description="下载文件到沙盒")
+@tool(description="沙箱工具:下载文件")
 def download_file_in_sandbox(url: str, save_path: str) -> str:
     global backend
     try:
@@ -526,9 +526,9 @@ def t_skill_in_sandbox(user_prompt: str) -> None:
             backend=backend,
             # skills=["/agent-root-dir/skills/"],  # 使用 backend 中的 skills
             tools=[
-                # download_file_in_local,
-                # download_file_in_sandbox,
-                download_file_via_local
+                download_file_in_local,
+                download_file_in_sandbox,
+                # download_file_via_local
             ]
         )
         result = agent.invoke(
@@ -547,4 +547,5 @@ def t_skill_in_sandbox(user_prompt: str) -> None:
 
 
 if __name__ == "__main__":
-    t_skill_in_sandbox("下载图片 https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png 到 /tmp")
+    t_skill_in_sandbox("下载 https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png 到 /tmp。优先使用本地工具")
+    t_skill_in_sandbox("下载 https://www.baidu.com/img/PCtm_d9c8750bed0b3c7d089fa7d55720d6cf.png 到 /tmp。优先使用沙箱工具")
